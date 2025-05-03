@@ -24,24 +24,10 @@ class MultiLabelNet(nn.Module):
     def forward(self, x):
         return self.fc2(self.act(self.fc1(x)))
 
-# ——— Load trained weights for both Anxiety and Depression models ———
-number_of_labels_anxiety = 7
-number_of_labels_depression = 9
-
-# Load the anxiety model
-anxiety_model = MultiLabelNet(input_dim=768, output_dim=number_of_labels_anxiety)
-anxiety_model.load_state_dict(torch.load("anxiety.pth", map_location="cpu"))
-anxiety_model.eval()
-
-# Load the depression model
-depression_model = MultiLabelNet(input_dim=768, output_dim=number_of_labels_depression)
-depression_model.load_state_dict(torch.load("depression.pth", map_location="cpu"))
-depression_model.eval()
-
 # ——— Symptom labels for Anxiety (1-7) and Depression (1-9) ———
 anxiety_labels = [
-    "Symptom 1", "Symptom 2", "Symptom 3", "Symptom 4", 
-    "Symptom 5", "Symptom 6", "Symptom 7"
+    "Symptom 10", "Symptom 11", "Symptom 12", "Symptom 13", 
+    "Symptom 14", "Symptom 15", "Symptom 16"
 ]
 
 depression_labels = [
@@ -77,7 +63,16 @@ def predict_symptoms(text: str, model: nn.Module, labels: list, threshold: float
 # ——— API endpoint for Anxiety Prediction ———
 @app.post("/predict/anxiety/")
 async def predict_anxiety(req: TextRequest):
+    # Load the anxiety model inside the request function
+    anxiety_model = MultiLabelNet(input_dim=768, output_dim=7)
+    anxiety_model.load_state_dict(torch.load("anxiety.pth", map_location="cpu"))
+    anxiety_model.eval()
+
     logits, probs, predicted = predict_symptoms(req.text, anxiety_model, anxiety_labels, threshold=0.3)
+    
+    # Release the model from memory after use
+    del anxiety_model
+    
     return {
         "predicted_symptoms": predicted
     }
@@ -85,7 +80,16 @@ async def predict_anxiety(req: TextRequest):
 # ——— API endpoint for Depression Prediction ———
 @app.post("/predict/depression/")
 async def predict_depression(req: TextRequest):
+    # Load the depression model inside the request function
+    depression_model = MultiLabelNet(input_dim=768, output_dim=9)
+    depression_model.load_state_dict(torch.load("depression.pth", map_location="cpu"))
+    depression_model.eval()
+
     logits, probs, predicted = predict_symptoms(req.text, depression_model, depression_labels, threshold=0.3)
+    
+    # Release the model from memory after use
+    del depression_model
+    
     return {
         "predicted_symptoms": predicted
     }
